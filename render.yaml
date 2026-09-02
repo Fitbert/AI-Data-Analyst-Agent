@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ai-data-analyst-agent
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python seed_demo_db.py && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      - key: DATABASE_URL
+        value: sqlite:///./demo.db
+      - key: MAX_ROWS_RETURNED
+        value: "500"
+      - key: QUERY_TIMEOUT_SECONDS
+        value: "10"
+      - key: AUDIT_LOG_PATH
+        value: ./audit_log.jsonl

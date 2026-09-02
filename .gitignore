@@ -1,0 +1,15 @@
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# runtime/generated
+backend/demo.db
+backend/audit_log.jsonl
+backend/server.log

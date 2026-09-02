@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AI Data Analyst Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0F1419;
+    --panel:#151B22;
+    --panel-2:#1B232C;
+    --border:#2A323C;
+    --text:#E6EDF3;
+    --muted:#8B95A1;
+    --accent:#F2A93B;
+    --accent-dim:rgba(242,169,59,0.14);
+    --green:#3FB950;
+    --red:#F85149;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+  .app{max-width:920px;margin:0 auto;padding:32px 20px 80px;}
+
+  .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:28px;}
+  .hdr h1{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 4px;}
+  .hdr h1 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:10px;box-shadow:0 0 8px var(--accent);}
+  .hdr p{margin:0;color:var(--muted);font-size:13px;max-width:520px;line-height:1.5;}
+
+  .connect-row{display:flex;gap:10px;margin-bottom:20px;}
+  #backendUrl{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:0 16px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;height:48px;}
+  #backendUrl:focus{border-color:var(--accent);}
+  #connectBtn{background:var(--accent);color:#1a1300;border:none;border-radius:10px;padding:0 22px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans);height:48px;}
+  #connectBtn:disabled{opacity:.5;cursor:not-allowed;}
+  .status-line{display:flex;align-items:center;gap:8px;margin:-10px 0 20px;font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .status-dot.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+  .panel-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:11.5px;color:var(--text);}
+  .chip b{color:var(--accent);font-weight:600;}
+  .schema-table{margin-bottom:14px;}
+  .schema-table:last-child{margin-bottom:0;}
+  .schema-table-name{font-family:var(--mono);font-size:12.5px;color:var(--accent);margin-bottom:6px;font-weight:700;}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--panel);}
+  .tbl-wrap{max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:8px;}
+
+  .ask-row{display:flex;gap:10px;}
+  #question{flex:1;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-family:var(--sans);font-size:14px;outline:none;}
+  #question:focus{border-color:var(--accent);}
+  #question::placeholder{color:var(--muted);}
+  #askBtn{background:var(--accent);color:#1a1300;border:none;border-radius:8px;padding:0 22px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans);}
+  #askBtn:disabled{opacity:.5;cursor:not-allowed;}
+  .example-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .ex-chip{background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--sans);}
+  .ex-chip:hover{border-color:var(--accent);color:var(--accent);}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+  .card-q{padding:14px 20px;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--muted);}
+  .card-q b{color:var(--text);font-weight:600;}
+  .card-body{padding:18px 20px;}
+  .insight{font-size:14.5px;line-height:1.6;margin-bottom:16px;}
+  .code-panel{background:#0B0F13;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+  .code-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#10151B;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+  .code-hdr .verified{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--green);}
+  .code-hdr .verified::before{content:'✓';font-weight:700;}
+  .code-hdr .toggle{color:var(--muted);font-size:11px;font-family:var(--mono);}
+  pre.code-body{margin:0;padding:14px;font-family:var(--mono);font-size:12px;line-height:1.6;color:#B8C2CC;overflow-x:auto;max-height:0;transition:max-height .2s ease;}
+  pre.code-body.open{max-height:400px;overflow-y:auto;}
+  .chart-wrap{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:16px;height:280px;position:relative;width:100%;}
+  .result-table-wrap{border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:260px;}
+  .raw-result{font-family:var(--mono);font-size:13px;color:var(--accent);background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px;}
+  .error-card{border-color:var(--red);}
+  .error-msg{font-family:var(--mono);font-size:12.5px;color:var(--red);background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:12px 14px;}
+
+  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-family:var(--mono);font-size:12.5px;padding:14px 20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){.spinner{animation:none;}}
+
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 20px;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div>
+      <h1><span class="dot"></span>AI Data Analyst Agent</h1>
+      <p>Connect to your backend, ask a question in plain English, get back verified SQL, an answer, and a chart.</p>
+    </div>
+  </div>
+
+  <div class="connect-row">
+    <input type="text" id="backendUrl" value="" placeholder="http://localhost:8000" />
+    <button id="connectBtn">Connect</button>
+  </div>
+  <div class="status-line"><span class="status-dot" id="statusDot"></span><span id="statusText">Not connected</span></div>
+
+  <div id="schemaPanel" class="panel" style="display:none;">
+    <div class="panel-title"><span>Schema</span><span id="tableCount"></span></div>
+    <div id="schemaTables"></div>
+  </div>
+
+  <div id="askPanel" class="panel" style="display:none;">
+    <div class="panel-title">Ask a question</div>
+    <div class="ask-row">
+      <input type="text" id="question" placeholder="e.g. What's the average order value by region?" />
+      <button id="askBtn">Ask</button>
+    </div>
+    <div class="example-chips" id="exampleChips"></div>
+  </div>
+
+  <div id="results"></div>
+  <div id="emptyState" class="empty">Enter your backend URL and hit Connect to get started.</div>
+</div>
+
+<script>
+let backendUrl = '';
+let schema = [];
+let chartCounter = 0;
+
+const connectBtn = document.getElementById('connectBtn');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+connectBtn.addEventListener('click', connectToBackend);
+document.getElementById('backendUrl').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') connectToBackend();
+});
+
+// If this page is served by the same service as the API (the normal
+// deployed case), default to same-origin and connect automatically.
+// Locally, if you're serving this file separately from the backend,
+// just type the backend's URL in and hit Connect.
+window.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('backendUrl');
+  if (!input.value) {
+    input.value = window.location.origin;
+    connectToBackend();
+  }
+});
+
+async function connectToBackend(){
+  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
+  if (!url) return;
+  connectBtn.disabled = true;
+  setStatus('connecting', `Connecting to ${url}…`);
+
+  try {
+    const res = await fetch(`${url}/schema`);
+    if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+    const data = await res.json();
+    if (!data.tables || !data.tables.length) throw new Error('Backend connected but reported no tables');
+
+    backendUrl = url;
+    schema = data.tables;
+    setStatus('ok', `Connected — ${schema.length} table${schema.length === 1 ? '' : 's'} available`);
+    renderSchema();
+    renderExamples();
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('schemaPanel').style.display = 'block';
+    document.getElementById('askPanel').style.display = 'block';
+  } catch (err) {
+    setStatus('err', `Couldn't connect: ${err.message}`);
+  } finally {
+    connectBtn.disabled = false;
+  }
+}
+
+function setStatus(kind, text){
+  statusDot.className = 'status-dot' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
+  statusText.textContent = text;
+}
+
+function renderSchema(){
+  const wrap = document.getElementById('schemaTables');
+  wrap.innerHTML = '';
+  schema.forEach(t => {
+    const block = document.createElement('div');
+    block.className = 'schema-table';
+    const chipsHtml = t.columns.map(c => `<div class="chip">${c.name} <b>${c.type}</b></div>`).join('');
+    block.innerHTML = `<div class="schema-table-name">${t.table}</div><div class="chips">${chipsHtml}</div>`;
+    wrap.appendChild(block);
+  });
+  document.getElementById('tableCount').textContent = `${schema.length} table${schema.length === 1 ? '' : 's'}`;
+}
+
+function renderExamples(){
+  const firstTable = schema[0];
+  if (!firstTable) return;
+  const numCol = firstTable.columns.find(c => /int|real|float|double|numeric|decimal/i.test(c.type));
+  const strCol = firstTable.columns.find(c => /char|text|string/i.test(c.type));
+  const examples = [];
+  if (numCol) examples.push(`What's the average ${numCol.name} in ${firstTable.table}?`);
+  if (numCol && strCol) examples.push(`Show total ${numCol.name} by ${strCol.name}`);
+  if (strCol) examples.push(`How many rows per ${strCol.name} in ${firstTable.table}?`);
+  const wrap = document.getElementById('exampleChips');
+  wrap.innerHTML = '';
+  examples.forEach(q => {
+    const b = document.createElement('button');
+    b.className = 'ex-chip';
+    b.textContent = q;
+    b.onclick = () => { document.getElementById('question').value = q; askQuestion(); };
+    wrap.appendChild(b);
+  });
+}
+
+document.getElementById('askBtn').addEventListener('click', askQuestion);
+document.getElementById('question').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') askQuestion();
+});
+
+async function askQuestion(){
+  const question = document.getElementById('question').value.trim();
+  if (!question) return;
+  document.getElementById('askBtn').disabled = true;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-q"><b>Q:</b> ${escapeHtml(question)}</div>
+    <div class="loading"><div class="spinner"></div>Generating SQL and running it on the backend…</div>`;
+  document.getElementById('results').appendChild(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+  try {
+    const response = await fetch(`${backendUrl}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || `Backend returned ${response.status}`);
+    if (typeof Chart === 'undefined') throw new Error('Charting library failed to load from CDN — try refreshing the page');
+
+    renderAnswerCard(card, question, data.explanation, data.sql, data.chart_type, data.rows);
+  } catch (err) {
+    renderErrorCard(card, question, err.message || String(err));
+  } finally {
+    document.getElementById('askBtn').disabled = false;
+  }
+}
+
+function extractChartData(result){
+  if (!Array.isArray(result) || result.length === 0) return null;
+  if (typeof result[0] !== 'object' || result[0] === null) return null;
+
+  const sample = result[0];
+  const keys = Object.keys(sample);
+  const labelKey = ['label', 'name', 'category', 'group', 'key'].find(k => k in sample) || keys[0];
+  const valueKey = ['value', 'count', 'total', 'sum', 'amount', 'avg'].find(k => k in sample && k !== labelKey)
+    || keys.find(k => k !== labelKey && typeof sample[k] === 'number')
+    || keys.find(k => k !== labelKey);
+
+  if (!labelKey || !valueKey) return null;
+
+  const out = result.map(r => ({ label: String(r[labelKey]), value: Number(r[valueKey]) }))
+    .filter(r => !isNaN(r.value));
+
+  return out.length ? out : null;
+}
+
+function renderAnswerCard(card, question, explanation, code, chartType, result){
+  chartCounter++;
+  const canvasId = `chart-${chartCounter}`;
+  let resultHtml = '';
+
+  const chartData = (chartType && chartType !== 'none') ? extractChartData(result) : null;
+
+  if (chartData && chartData.length) {
+    resultHtml = `<div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>`;
+  } else if (chartType && chartType !== 'none') {
+    resultHtml = `<div class="error-msg">The model returned a chart type but the result shape wasn't chartable, so showing the raw result instead: <br><span class="raw-result" style="display:inline-block;margin-top:8px;">${escapeHtml(JSON.stringify(result))}</span></div>`;
+  } else if (Array.isArray(result)) {
+    const keys = result.length ? Object.keys(result[0]) : [];
+    resultHtml = `<div class="result-table-wrap"><table>
+      <thead><tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr></thead>
+      <tbody>${result.map(r => `<tr>${keys.map(k => `<td>${r[k]}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+  } else {
+    resultHtml = `<div class="raw-result">${escapeHtml(String(result))}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-q"><b>Q:</b> ${escapeHtml(question)}</div>
+    <div class="card-body">
+      <div class="insight">${escapeHtml(explanation)}</div>
+      <div class="code-panel">
+        <div class="code-hdr" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.toggle').textContent = this.nextElementSibling.classList.contains('open') ? 'hide ▲' : 'show ▼'">
+          <span class="verified">Verified SQL — executed by the backend</span>
+          <span class="toggle">show ▼</span>
+        </div>
+        <pre class="code-body">${escapeHtml(code)}</pre>
+      </div>
+      ${resultHtml}
+    </div>
+  `;
+
+  if (chartData && chartData.length) {
+    const ctx = document.getElementById(canvasId);
+    const labels = chartData.map(r => r.label);
+    const values = chartData.map(r => r.value);
+    new Chart(ctx, {
+      type: chartType === 'pie' ? 'pie' : chartType,
+      data: {
+        labels,
+        datasets: [{
+          label: 'value',
+          data: values,
+          backgroundColor: chartType === 'pie'
+            ? ['#F2A93B','#3FB950','#58A6FF','#F85149','#A371F7','#DB6D28','#39C5CF','#D2A8FF']
+            : '#F2A93B',
+          borderColor: '#F2A93B',
+          borderWidth: chartType === 'line' ? 2 : 0,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: chartType === 'pie', labels: { color: '#8B95A1' } } },
+        scales: chartType === 'pie' ? {} : {
+          x: { ticks: { color: '#8B95A1' }, grid: { color: '#2A323C' } },
+          y: { ticks: { color: '#8B95A1' }, grid: { color: '#2A323C' } }
+        }
+      }
+    });
+  }
+}
+
+function renderErrorCard(card, question, message){
+  card.classList.add('error-card');
+  card.innerHTML = `
+    <div class="card-q"><b>Q:</b> ${escapeHtml(question)}</div>
+    <div class="card-body">
+      <div class="error-msg">Couldn't complete this analysis: ${escapeHtml(message)}. Try rephrasing the question.</div>
+    </div>
+  `;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
